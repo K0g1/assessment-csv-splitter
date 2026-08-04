@@ -74,6 +74,31 @@ def test_splitter_does_not_publish_when_independent_audit_fails(
     assert not list(tmp_path.glob(".split.staging-*"))
 
 
+def test_destination_created_during_audit_is_not_replaced(
+    six_csv_directory: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import assessment_csv_splitter.audit as audit_module
+
+    output = tmp_path / "split"
+    real_verify_manifest = audit_module.verify_manifest
+
+    def racing_verify_manifest(input_path: Path, staging_path: Path) -> ManifestAuditResult:
+        result = real_verify_manifest(input_path, staging_path)
+        output.mkdir()
+        return result
+
+    monkeypatch.setattr(audit_module, "verify_manifest", racing_verify_manifest)
+
+    with pytest.raises(FileExistsError, match="already exists"):
+        split_dataset(six_csv_directory, output)
+
+    assert output.is_dir()
+    assert not any(output.iterdir())
+    assert not list(tmp_path.glob(".split.staging-*"))
+
+
 def test_manifest_verifier_detects_tampered_output_hash(
     six_csv_directory: Path,
     tmp_path: Path,

@@ -454,6 +454,8 @@ def split_dataset(input_path: Path, output_path: Path) -> SplitResult:
         (audit_dir / "AUDIT.md").write_text(audit_markdown, encoding="utf-8")
         if errors:
             raise RuntimeError("Output audit failed")
+        if output_path.exists():
+            raise FileExistsError(f"Output path already exists: {output_path}")
         os.replace(staging, output_path)
     except BaseException:
         if staging.exists():
