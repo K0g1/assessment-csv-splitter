@@ -28,6 +28,8 @@ The destination must not already exist. This prevents accidental overwrites.
   "C:\Path\To\split-output"
 ```
 
+Windows SmartScreen may warn about an unsigned downloaded executable. Verify it against `SHA256SUMS.txt`, then use **More info > Run anyway** if needed.
+
 ### Linux
 
 ```bash
