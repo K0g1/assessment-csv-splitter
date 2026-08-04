@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import os
 import stat
 import zipfile
 from pathlib import Path
@@ -149,6 +150,10 @@ def test_routing_headers_must_be_unambiguous(
     assert not output.exists()
 
 
+@pytest.mark.skipif(
+    os.name == "nt",
+    reason="Windows cannot create a basename containing an invalid Windows character",
+)
 def test_source_basename_must_be_windows_safe(
     six_csv_directory: Path,
     tmp_path: Path,
@@ -171,7 +176,12 @@ def test_symlinked_source_csv_is_rejected(
     source_file = next(six_csv_directory.glob("* Assessment Scores.csv"))
     external_file = tmp_path / "external.csv"
     source_file.replace(external_file)
-    source_file.symlink_to(external_file)
+    try:
+        source_file.symlink_to(external_file)
+    except OSError as error:
+        if os.name == "nt" and getattr(error, "winerror", None) == 1314:
+            pytest.skip("Windows runner does not grant symbolic-link privilege")
+        raise
     output = tmp_path / "split"
 
     with pytest.raises(ValueError, match="symbolic link"):
