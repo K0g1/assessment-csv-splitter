@@ -24,7 +24,7 @@ The executables are built natively and run an end-to-end ZIP smoke test on their
 
 ## Verification evidence
 
-- 28 automated tests pass on Linux.
+- 30 automated tests pass on Linux.
 - Native Windows tests pass, with two expected skips for filesystem operations that Windows itself prohibits without special privileges.
 - Ruff, strict mypy, Bandit, and runtime dependency audit pass.
 - Clean wheel installation and installed-console smoke test pass.
