@@ -6,6 +6,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from assessment_csv_splitter.cli import main
+
 
 def run_cli(*arguments: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
@@ -61,3 +65,38 @@ def test_cli_dry_run_validates_without_writing(
     assert summary["output_csv_count"] == 18
     assert summary["header_only_count"] == 4
     assert not output.exists()
+
+
+def test_direct_cli_prints_human_summary(
+    six_csv_directory: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "human-output"
+
+    exit_code = main([str(six_csv_directory), str(output)])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "Split complete and independently verified." in captured.out
+    assert "Output CSV files: 18" in captured.out
+    assert "Patient/assessment folders: 3" in captured.out
+    assert captured.err == ""
+
+
+def test_direct_cli_emits_structured_validation_error(
+    six_csv_directory: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "already-exists"
+    output.mkdir()
+
+    exit_code = main([str(six_csv_directory), str(output), "--json"])
+
+    captured = capsys.readouterr()
+    error = json.loads(captured.err)
+    assert exit_code == 2
+    assert captured.out == ""
+    assert error["status"] == "ERROR"
+    assert "already exists" in error["error"]
