@@ -23,6 +23,12 @@ classifiers = [
   "Topic :: Utilities",
 ]
 
+[project.urls]
+Homepage = "https://github.com/K0g1/assessment-csv-splitter"
+Repository = "https://github.com/K0g1/assessment-csv-splitter"
+Issues = "https://github.com/K0g1/assessment-csv-splitter/issues"
+Changelog = "https://github.com/K0g1/assessment-csv-splitter/blob/main/CHANGELOG.md"
+
 [project.scripts]
 assessment-csv-splitter = "assessment_csv_splitter.cli:main"
 
