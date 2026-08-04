@@ -1,0 +1,70 @@
+name: Build release executables
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: assessment-csv-splitter-linux-x86_64
+            binary: dist/assessment-csv-splitter-linux-x86_64
+          - os: windows-latest
+            asset: assessment-csv-splitter-windows-x86_64
+            binary: dist/assessment-csv-splitter-windows-x86_64.exe
+          - os: macos-latest
+            asset: assessment-csv-splitter-macos
+            binary: dist/assessment-csv-splitter-macos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff check src tests scripts
+      - run: mypy src
+      - run: pytest
+      - name: Build standalone executable
+        run: >-
+          pyinstaller --clean --noconfirm --onefile
+          --name "${{ matrix.asset }}"
+          scripts/pyinstaller_entry.py
+      - name: Smoke-test standalone executable
+        run: python scripts/smoke_test_binary.py "${{ matrix.binary }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.binary }}
+          if-no-files-found: error
+
+  publish-assets:
+    name: Attach verified executables
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - run: python scripts/generate_checksums.py release-assets
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: release-assets/*
+          fail_on_unmatched_files: true
